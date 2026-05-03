@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#002B5C" />
+  <title>RMH Procurement — Supplier Performance Scorecard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <div class="header__brand">
+        <a class="header__logo-link" href="." aria-label="The Royal Melbourne Hospital">
+          <img
+            class="header__logo-img"
+            src="assets/rmh-logo.png"
+            width="400"
+            height="88"
+            alt="The Royal Melbourne Hospital"
+          />
+        </a>
+        <div class="header__titles">
+          <h1>Supplier Performance Scorecard</h1>
+          <p class="header__sub">Procurement · Post-contract automation &amp; pulse checks</p>
+        </div>
+      </div>
+      <nav class="nav" id="nav" aria-label="Primary"></nav>
+    </div>
+  </header>
+
+  <div class="app">
+    <main class="main" id="main"></main>
+
+    <footer class="footer">
+      <span>Demo prototype — data stored locally in your browser</span>
+      <span class="footer__sep">·</span>
+      <span>Window score = weighted KPI score 0–100 (pillar weights sum 100%; each leaf KPI 1–5). Green = 100/100.</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="kpi-framework.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
