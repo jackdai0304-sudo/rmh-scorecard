@@ -1,11 +1,11 @@
 /**
  * RMH Procurement — Supplier Scorecard (demo)
- * Local-only persistence; each leaf KPI 1–5; pillar weights (sum 100%) give a window score 0–100; exceptions lower only tagged KPIs (others stay 5).
+ * Local-only persistence; each leaf KPI 1–5; pillar weights (sum 100%) give a period score 0–100; exceptions lower only tagged KPIs (others stay 5).
  */
 
 const STORAGE_KEY = "rmh-scorecard-v1";
 
-/** Post-contract pulse feedback window: days from start date to end date (inclusive period). */
+/** Default length (days) for one in-contract assessment period in this demo; UI copy stays generic. Long contracts can repeat many periods — evaluation runs during the contract, not only at the end. */
 const FEEDBACK_WINDOW_DAYS = 60;
 
 /**
@@ -779,7 +779,7 @@ function runJSONContractImport(st, payload) {
     if (importWindowFromRow(st, norm, `JSON row ${i + 1}`, errors)) added++;
   });
 
-  messages.push(`Imported ${added} contract / feedback window(s).`);
+  messages.push(`Imported ${added} contract / assessment window(s).`);
   return { ok: errors.length === 0, errors, messages, added };
 }
 
@@ -810,7 +810,7 @@ function importTemplateJSON() {
           supplierId: "imp_demo_sup",
           supplierName: "Imported Demo Supplier Ltd",
           contractRef: "C-IMPORT-DEMO-001",
-          contractTitle: `Open ${FEEDBACK_WINDOW_DAYS}-day feedback from today`,
+          contractTitle: "Open in-contract assessment from today",
           openFromToday: true,
           status: "open",
         },
@@ -1106,9 +1106,9 @@ function closeExpiredWindows(state) {
 
 const navItems = [
   { id: "dashboard", label: "Dashboard" },
-  { id: "windows", label: `${FEEDBACK_WINDOW_DAYS}-day windows` },
+  { id: "windows", label: "Contract assessments" },
   { id: "import", label: "Import contracts" },
-  { id: "pulse", label: "Pulse check" },
+  { id: "pulse", label: "Feedback pulse" },
   { id: "kpis", label: "Contract KPIs" },
   { id: "suppliers", label: "Suppliers & SRM" },
 ];
@@ -1120,7 +1120,7 @@ let route = "dashboard";
 let lastImportReportText = "";
 let lastImportHadErrors = false;
 
-/** Suppliers & SRM: "contract" = each feedback window (FEEDBACK_WINDOW_DAYS); "supplier" = rolled up by supplier */
+/** Suppliers & SRM: "contract" = each assessment window on an in-flight contract; "supplier" = rolled up by supplier */
 let suppliersPageView = "supplier";
 
 /** Supplier view drill-down: when set, show that supplier's contract windows */
@@ -1169,8 +1169,8 @@ function contractWindowsTableBodyHtml(state, windows, maxS, columns, withFeedbac
   if (!sorted.length) {
     const msg =
       columns === "full"
-        ? `No contract windows yet — open one under <strong>${FEEDBACK_WINDOW_DAYS}-day windows</strong>.`
-        : `No ${FEEDBACK_WINDOW_DAYS}-day windows for this supplier yet.`;
+        ? `No contract assessments yet — open one under <strong>Contract assessments</strong>.`
+        : `No assessment windows for this supplier yet.`;
     return `<tr><td colspan="${colspan}" class="empty">${msg}</td></tr>`;
   }
   const feedbackCell = (w) =>
@@ -1219,14 +1219,14 @@ function contractStaffFeedbackOverviewHTML(state, w) {
     const t = w.finalScoreTotal ?? computeWindowAggregate(state, w).total;
     const m = w.finalScoreMax ?? maxS;
     const ratio = m ? t / m : 1;
-    windowScoreLine = `<li><strong>Window score (closed):</strong> <span class="${scoreClassKpiTotalRatio(ratio)}">${t}/${m}</span> (${kpiScoreSecondaryLine(t, m)})</li>`;
+    windowScoreLine = `<li><strong>Period score (closed):</strong> <span class="${scoreClassKpiTotalRatio(ratio)}">${t}/${m}</span> (${kpiScoreSecondaryLine(t, m)})</li>`;
   } else {
-    windowScoreLine = `<li><strong>Window status:</strong> open — final KPI total is set when the window closes.</li>`;
+    windowScoreLine = `<li><strong>Period status:</strong> open — final KPI total is set when this assessment period closes.</li>`;
   }
 
   const pulseRows =
     pulses.length === 0
-      ? `<tr><td colspan="6" class="empty">No pulse submissions yet — use <strong>Pulse check</strong> while this window is open.</td></tr>`
+      ? `<tr><td colspan="6" class="empty">No feedback submissions yet — open <strong>Feedback pulse</strong> while this assessment window is active.</td></tr>`
       : pulses
           .map((p) => {
             const pk = pulseKpiTotals(p);
@@ -1265,7 +1265,7 @@ function contractStaffFeedbackOverviewHTML(state, w) {
         <button type="button" class="btn btn--ghost" id="srm-feedback-overview-back">← Back</button>
         <div class="srm-drilldown__head-text">
           <h2 class="srm-drilldown__title">Contract feedback overview</h2>
-          <p class="kpi-intro srm-drilldown__meta" style="margin-top:0.35rem !important;">All staff pulse submissions for this ${FEEDBACK_WINDOW_DAYS}-day feedback window.</p>
+          <p class="kpi-intro srm-drilldown__meta" style="margin-top:0.35rem !important;">All staff feedback for this assessment period.</p>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem;">
@@ -1281,19 +1281,19 @@ function contractStaffFeedbackOverviewHTML(state, w) {
         <div class="card">
           <h3 style="margin-top:0;">Staff participation</h3>
           <ul class="check" style="margin:0;font-size:0.875rem;">
-            <li><strong>Total pulses:</strong> ${pulses.length}</li>
+            <li><strong>Total submissions:</strong> ${pulses.length}</li>
             <li><strong>Exceptions reported:</strong> ${excN}</li>
             <li><strong>Clinical:</strong> ${nClinical} · <strong>Procurement:</strong> ${nProc}</li>
           </ul>
         </div>
         <div class="card">
           <h3 style="margin-top:0;">How to read this</h3>
-          <p style="margin:0;font-size:0.8125rem;color:var(--muted);line-height:1.5;">Each row is one person’s submission. <strong>Pulse score</strong> is the weighted 0–100 total for that pulse (only tagged KPIs drop when they report an issue). The closed window score uses the <strong>lowest</strong> score per KPI across everyone, then the same weighting — see Dashboard <em>How scoring works</em>.</p>
+          <p style="margin:0;font-size:0.8125rem;color:var(--muted);line-height:1.5;">Each row is one person’s submission. <strong>Feedback score</strong> is the weighted 0–100 total for that submission (only tagged KPIs drop when they report an issue). When the assessment period closes, the <strong>period score</strong> uses the <strong>lowest</strong> score per KPI across everyone, then the same weighting — see Dashboard <em>How scoring works</em>.</p>
         </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Submitted</th><th>Role</th><th>Type</th><th>Pulse score</th><th>Linked KPI</th><th>Detail</th></tr></thead>
+          <thead><tr><th>Submitted</th><th>Role</th><th>Type</th><th>Feedback score</th><th>Linked KPI</th><th>Detail</th></tr></thead>
           <tbody>${pulseRows}</tbody>
         </table>
       </div>
@@ -1408,20 +1408,20 @@ function dashboardAnalyticsMarkup(hasClosed, scorecardMaxPoints) {
     return `
     <div class="card dashboard-analytics" style="margin-top:1rem;">
       <h2>Performance charts</h2>
-      <p style="color:var(--muted);margin:0;">No <strong>closed</strong> windows yet — load the demo or close a ${FEEDBACK_WINDOW_DAYS}-day window. You’ll see two simple charts: scores <strong>by contract</strong> and <strong>by supplier</strong> (same numbers as the rest of the app, shown as % of <strong>${maxPts}</strong> weighted points).</p>
+      <p style="color:var(--muted);margin:0;">No <strong>closed</strong> assessment periods yet — load the demo or close an open assessment period. You’ll see two simple charts: scores <strong>by contract</strong> and <strong>by supplier</strong> (same numbers as the rest of the app, shown as % of <strong>${maxPts}</strong> weighted points).</p>
     </div>`;
   }
   return `
     <div class="card dashboard-analytics" style="margin-top:1rem;">
       <h2>Performance charts</h2>
-      <p class="chart-intro chart-intro--tight">Closed windows only. Each leaf KPI is 1–5; framework <strong>pillar weights</strong> (Capability 5%, Innovation 10%, … — total 100%) are applied so each pillar’s KPIs share that % (leaf rows repeat the pillar % in data; equal raw % → equal split). Window score <strong>0–${maxPts}</strong>. Bar = <strong>% of max</strong>. Weaker first. Colours: <strong>green = exactly max</strong>; amber / red = below full marks.</p>
+      <p class="chart-intro chart-intro--tight">Closed assessment periods only. Each leaf KPI is 1–5; framework <strong>pillar weights</strong> (Capability 5%, Innovation 10%, … — total 100%) are applied so each pillar’s KPIs share that % (leaf rows repeat the pillar % in data; equal raw % → equal split). Period score <strong>0–${maxPts}</strong>. Bar = <strong>% of max</strong>. Weaker first. Colours: <strong>green = exactly max</strong>; amber / red = below full marks.</p>
       <div class="grid grid--2 chart-grid">
         <div class="chart-panel">
-          <h3>By contract (each closed window)</h3>
+          <h3>By contract (each closed period)</h3>
           <div class="chart-canvas-wrap" id="dash-wrap-contracts"><canvas id="dash-chart-contracts" aria-label="Score percent by contract reference"></canvas></div>
         </div>
         <div class="chart-panel">
-          <h3>By supplier (average of that supplier’s closed windows)</h3>
+          <h3>By supplier (average across closed periods)</h3>
           <div class="chart-canvas-wrap chart-canvas-wrap--tall" id="dash-wrap-suppliers"><canvas id="dash-chart-suppliers" aria-label="Rolling score percent by supplier"></canvas></div>
         </div>
       </div>
@@ -1572,7 +1572,7 @@ function mountDashboardCharts() {
               },
               label(item) {
                 const r = supRows[item.dataIndex];
-                return [`${item.raw}% avg`, `${r.n} closed window(s)`, r.category];
+                return [`${item.raw}% avg`, `${r.n} closed period(s)`, r.category];
               },
             },
           },
@@ -1602,7 +1602,7 @@ function viewDashboard() {
   const exceptions = state.pulses.filter((p) => pulseCountsAsException(p));
   const openContracts =
     openW.length === 0
-      ? `<li style="color:var(--muted)">No active feedback windows.</li>`
+      ? `<li style="color:var(--muted)">No active assessment windows.</li>`
       : openW
           .map((w) => {
             const s = supplierById(state, w.supplierId);
@@ -1616,13 +1616,13 @@ function viewDashboard() {
     <div class="grid grid--3">
       <div class="card">
         <div class="stat">${openW.length}</div>
-        <div class="stat-label">Active feedback windows</div>
-        <p>Each delivery or service completion can trigger a ${FEEDBACK_WINDOW_DAYS}-day pulse period.</p>
+        <div class="stat-label">Active assessment windows</div>
+        <p>Ongoing contracts use repeating assessment periods so performance is reviewed <strong>during</strong> the contract — not only when it ends. Triggers can include scheduled reviews, milestones, or delivery/service events.</p>
       </div>
       <div class="card">
         <div class="stat">${closedW.length}</div>
-        <div class="stat-label">Closed scoring events</div>
-        <p>Closed windows store a <strong>weighted KPI score</strong> (16 leaf KPIs × 1–5, pillar weights sum to <strong>100%</strong> → max <strong>100</strong> pts). UI also shows a <strong>0–100 index</strong> (= % of max). Green only when score = max.</p>
+        <div class="stat-label">Closed assessment periods</div>
+        <p>Closed periods store a <strong>weighted KPI score</strong> (16 leaf KPIs × 1–5, pillar weights sum to <strong>100%</strong> → max <strong>100</strong> pts). UI also shows a <strong>0–100 index</strong> (= % of max). Green only when score = max.</p>
       </div>
       <div class="card">
         <div class="stat">${exceptions.length}</div>
@@ -1634,15 +1634,15 @@ function viewDashboard() {
     <div class="card" style="margin-top:1rem;">
       <h2>How scoring works</h2>
       <div class="flow" style="margin-top:0.75rem;">
-        <div class="flow__step"><strong>1 · Trigger</strong>Contract terms summarised; window opens on delivery / service completion.</div>
-        <div class="flow__step"><strong>2 · Pulse</strong>Short quizzes: clinical (quality, usability); procurement (compliance, risk, responsiveness).</div>
-        <div class="flow__step"><strong>3 · KPI composite</strong>Rationalised RMH catalogue: <strong>16 KPIs</strong> under six pillars (weights total 100%). Each leaf repeats its pillar % in data; effective weight per KPI scales so each pillar still sums to its share. Each scored 1–5; only flagged KPIs drop for a pulse. Window score = Σ (min per KPI ÷ 5) × effective weight%; max <strong>100</strong>.</div>
+        <div class="flow__step"><strong>1 · Schedule</strong>Each contract runs one or more assessment periods while the agreement is <strong>live</strong> (multi-year deals repeat over time). Triggers can follow calendar, milestones, or operational events.</div>
+        <div class="flow__step"><strong>2 · Feedback pulse</strong>Short questionnaires: clinical (quality, usability); procurement (compliance, risk, responsiveness).</div>
+        <div class="flow__step"><strong>3 · KPI composite</strong>Rationalised RMH catalogue: <strong>16 KPIs</strong> under six pillars (weights total 100%). Each leaf repeats its pillar % in data; effective weight per KPI scales so each pillar still sums to its share. Each scored 1–5; only flagged KPIs drop for an entry. Period score = Σ (min per KPI ÷ 5) × effective weight%; max <strong>100</strong>.</div>
       </div>
       <p style="margin:0.75rem 0 0;font-size:0.8125rem;color:var(--muted);">Contract dimensions follow the <strong>Contract KPIs</strong> tab — RMH rationalised scorecard (MH24.CM.001), 16 KPIs.</p>
     </div>
     <div class="card" style="margin-top:1rem;">
-      <h2>Open fictional contracts (pulse-ready)</h2>
-      <p style="margin-top:0;">Synthetic RMH-style panel, PO, MOU &amp; legacy ICT references — <strong>8 suppliers</strong>, <strong>3 open</strong> windows, pulses spanning clinical/procurement and multiple pillars. Go to <strong>Pulse check</strong> to add feedback.</p>
+      <h2>Open fictional contracts (ready for feedback)</h2>
+      <p style="margin-top:0;">Synthetic RMH-style panel, PO, MOU &amp; legacy ICT references — <strong>8 suppliers</strong>, <strong>3 open</strong> assessment windows, feedback spanning clinical/procurement and multiple pillars. Use <strong>Feedback pulse</strong> to record submissions.</p>
       <ul class="check" style="margin-top:0.75rem;">${openContracts}</ul>
     </div>
   `;
@@ -1651,7 +1651,7 @@ function viewDashboard() {
 function viewWindows() {
   const rows =
     state.windows.length === 0
-      ? `<tr><td colspan="6" class="empty">No windows yet. Click <strong>Reset &amp; load full fictional demo</strong> above to load synthetic contracts, or open a new delivery below.</td></tr>`
+      ? `<tr><td colspan="6" class="empty">No assessment periods yet. Click <strong>Reset &amp; load full fictional demo</strong> above to load sample contracts, or start a new period below.</td></tr>`
       : [...state.windows]
           .sort((a, b) => b.startDate.localeCompare(a.startDate))
           .map((w) => {
@@ -1686,12 +1686,12 @@ function viewWindows() {
           .join("");
 
   return `
-    <p class="section-title">Post-contract feedback windows</p>
-    <p class="kpi-intro" style="margin:0 0 1rem;max-width:72ch;">Window score is <strong>0–100</strong>: each leaf KPI is <strong>1–5</strong>. In <code>kpi-framework.js</code> each leaf repeats its pillar’s <strong>weightPercent</strong> (same as the workbook); the app <strong>scales within the pillar</strong> so those leaves still sum to that pillar’s share (six pillars sum to 100%). The table shows <strong>xx/100</strong> plus a <strong>0–100 index</strong> (% of max) and an approximate <strong>/5</strong> equivalent. <strong>Open</strong> windows stay “Pending” until close. For imperfect demo scores, use <strong>Reset &amp; load full fictional demo</strong> or clear old browser data.</p>
+    <p class="section-title">In-contract assessment windows</p>
+    <p class="kpi-intro" style="margin:0 0 1rem;max-width:72ch;">These rows are <strong>scoring periods</strong> on active contracts — you can stack many over a multi-year deal so issues surface early and corrective action can happen <strong>while the contract runs</strong>. Period score is <strong>0–100</strong> (leaf KPIs 1–5 with pillar weights in <code>kpi-framework.js</code>). Table shows <strong>xx/100</strong>, index, and ~<strong>/5</strong>. <strong>Open</strong> periods stay “Pending” until closed. For varied demo scores, use <strong>Reset &amp; load full fictional demo</strong> or clear browser data.</p>
     <div class="grid grid--2" style="margin-bottom:1rem;">
       <div class="card">
-        <h3>Simulate delivery / completion</h3>
-        <p>Starts today; closes ${FEEDBACK_WINDOW_DAYS} days later. In production this would be driven by contract parsing and ERP events. Bulk load: <strong>Import contracts</strong> tab.</p>
+        <h3>Open a new assessment period</h3>
+        <p>Starts today; this prototype assigns an end date automatically (assessment length is configurable for demos). Use whenever you want the next in-contract review cycle (not only at contract end). In production, dates would come from CMS / ERP scheduling. Bulk load: <strong>Import contracts</strong>.</p>
         <form id="form-new-window">
           <div class="form-group">
             <label for="nw-supplier">Supplier</label>
@@ -1703,22 +1703,22 @@ function viewWindows() {
             <label for="nw-contract">Contract / PO reference</label>
             <input type="text" id="nw-contract" placeholder="e.g. PO-2026-1842" required />
           </div>
-          <button type="submit" class="btn btn--primary">Open ${FEEDBACK_WINDOW_DAYS}-day window</button>
+          <button type="submit" class="btn btn--primary">Start assessment period</button>
         </form>
       </div>
       <div class="card">
         <h3>Maintenance</h3>
-        <p>Close open windows by system date, or reload the full fictional contract pack.</p>
+        <p>Close open periods when past end date, or reload the full fictional contract pack.</p>
         <div class="list-actions">
           <button type="button" class="btn btn--primary" id="btn-full-demo">Reset &amp; load full fictional demo</button>
-          <button type="button" class="btn btn--ghost" id="btn-process-due">Process due windows (use today’s date)</button>
-          <button type="button" class="btn btn--ghost" id="btn-seed">Add extra sample closed window</button>
+          <button type="button" class="btn btn--ghost" id="btn-process-due">Process due periods (today’s date)</button>
+          <button type="button" class="btn btn--ghost" id="btn-seed">Add sample closed period</button>
         </div>
       </div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Status</th><th>Supplier</th><th>Reference</th><th>Period</th><th>Days left</th><th>KPI total</th></tr></thead>
+        <thead><tr><th>Status</th><th>Supplier</th><th>Reference</th><th>Period</th><th>Days left</th><th>Period score</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1729,8 +1729,8 @@ function viewPulse() {
   const openW = state.windows.filter((w) => w.status === "open");
   const options =
     openW.length === 0
-      ? `<option value="">No open windows — open one from “${FEEDBACK_WINDOW_DAYS}-day windows”</option>`
-      : `<option value="">Select window…</option>` +
+      ? `<option value="">No open assessment windows — open one under Contract assessments</option>`
+      : `<option value="">Select assessment period…</option>` +
         openW
           .map((w) => {
             const s = supplierById(state, w.supplierId);
@@ -1739,12 +1739,12 @@ function viewPulse() {
           .join("");
 
   return `
-    <p class="section-title">Pulse check (segmented)</p>
+    <p class="section-title">Feedback pulse</p>
     <div class="card">
-      <p><strong>No issue:</strong> all KPIs count as 5. <strong>Exception:</strong> only the KPI you select is scored lower; every other KPI stays 5 for this pulse. After you pick the <strong>KPI area</strong>, the score slider uses <strong>0–that pillar’s %</strong> (e.g. 0–30 for Risk &amp; compliance) so one step is much smaller on the final /100 result than jumping whole 1–5 points; values map to the KPI’s 1–5 scale for aggregation. When the window closes, each KPI uses the <strong>lowest</strong> score anyone gave; the window score is the <strong>weighted</strong> total (max <strong>100</strong>).</p>
+      <p><strong>No issue:</strong> all KPIs count as 5. <strong>Exception:</strong> only the KPI you select is scored lower; every other KPI stays 5 for this submission. After you pick the <strong>KPI area</strong>, the score slider uses <strong>0–that pillar’s %</strong> (e.g. 0–30 for Risk &amp; compliance) for finer steps on the /100 scale; values map to the KPI’s 1–5 scale for aggregation. When the assessment period closes, each KPI uses the <strong>lowest</strong> score anyone gave; the period score is the <strong>weighted</strong> total (max <strong>100</strong>).</p>
       <form id="form-pulse">
         <div class="form-group">
-          <label for="p-window">Feedback window</label>
+          <label for="p-window">Assessment window</label>
           <select id="p-window" required>${options}</select>
         </div>
         <div class="form-group">
@@ -1781,7 +1781,7 @@ function viewPulse() {
             <span class="slider-value" id="p-score-val">—</span>
           </div>
         </div>
-        <button type="submit" class="btn btn--primary" ${openW.length === 0 ? "disabled" : ""}>Submit pulse</button>
+        <button type="submit" class="btn btn--primary" ${openW.length === 0 ? "disabled" : ""}>Submit feedback</button>
       </form>
     </div>
   `;
@@ -1898,7 +1898,7 @@ function viewSuppliers() {
     <p class="section-title" style="margin-top:1.75rem;">Recent exceptions &amp; KPI linkage</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Supplier</th><th>Contract ref</th><th>Pulse score</th><th>Linked KPI</th></tr></thead>
+        <thead><tr><th>Date</th><th>Supplier</th><th>Contract ref</th><th>Feedback score</th><th>Linked KPI</th></tr></thead>
         <tbody>${excRows}</tbody>
       </table>
     </div>
@@ -1908,18 +1908,18 @@ function viewSuppliers() {
   }
 
   const toolbarHint = isContract
-    ? `<strong>Contract view</strong> — one row per <strong>${FEEDBACK_WINDOW_DAYS}-day window</strong>. <strong>Staff feedback</strong> opens an overview of every pulse on that contract. KPI score shows when the window is <strong>closed</strong>.`
+    ? `<strong>Contract view</strong> — one row per assessment period on that supplier agreement. <strong>Staff feedback</strong> lists every submission in that period. KPI score appears when the period is <strong>closed</strong>.`
     : drillSup
       ? "This supplier’s <strong>contracts</strong> are listed below. Use <strong>Staff feedback</strong> on each row to see all staff evaluations for that contract. <strong>← All suppliers</strong> returns to the portfolio list."
-      : "<strong>Supplier view</strong> — click a <strong>supplier row</strong> to open its contracts; each contract has a <strong>Staff feedback</strong> overview of all pulses.";
+      : "<strong>Supplier view</strong> — click a <strong>supplier row</strong> to open its contracts; each contract lists its assessment periods with a <strong>Staff feedback</strong> overview.";
 
   return `
     <p class="section-title">Suppliers &amp; SRM</p>
     <div class="card srm-view-toolbar">
       <p class="srm-view-toolbar__label">Performance scorecard</p>
-      <div class="role-toggle" id="srm-view-toggle" role="group" aria-label="Scorecard view">
-        <button type="button" data-view="contract" class="${isContract ? "is-on" : ""}">Contract view</button>
-        <button type="button" data-view="supplier" class="${!isContract ? "is-on" : ""}">Supplier view</button>
+      <div class="role-toggle role-toggle--srm" id="srm-view-toggle" role="group" aria-label="Scorecard view">
+        <button type="button" data-view="contract" class="${isContract ? "is-on" : ""}"><span class="role-toggle__icon role-toggle__icon--contract" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span><span class="role-toggle__label">Contract view</span></button>
+        <button type="button" data-view="supplier" class="${!isContract ? "is-on" : ""}"><span class="role-toggle__icon role-toggle__icon--supplier" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="role-toggle__label">Supplier view</span></button>
       </div>
       <p class="kpi-intro srm-view-toolbar__hint">${toolbarHint}</p>
     </div>
@@ -1927,7 +1927,7 @@ function viewSuppliers() {
       isContract
         ? `<div class="table-wrap">
       <table>
-        <thead><tr><th>Contract ref</th><th>Supplier</th><th>Category</th><th>Status</th><th>Period</th><th>KPI score</th><th>Staff feedback</th></tr></thead>
+        <thead><tr><th>Contract ref</th><th>Supplier</th><th>Category</th><th>Status</th><th>Period</th><th>Period score</th><th>Staff feedback</th></tr></thead>
         <tbody>${contractRows}</tbody>
       </table>
     </div>`
@@ -1937,12 +1937,12 @@ function viewSuppliers() {
         <button type="button" class="btn btn--ghost" id="srm-back-suppliers">← All suppliers</button>
         <div class="srm-drilldown__head-text">
           <h2 class="srm-drilldown__title">${escapeHtml(drillSup.name)}</h2>
-          <p class="kpi-intro srm-drilldown__meta">${escapeHtml(drillSup.category)} · ${drillWindows.length} window(s)</p>
+          <p class="kpi-intro srm-drilldown__meta">${escapeHtml(drillSup.category)} · ${drillWindows.length} assessment period(s)</p>
         </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Contract ref</th><th>Status</th><th>Period</th><th>KPI score</th><th>Staff feedback</th></tr></thead>
+          <thead><tr><th>Contract ref</th><th>Status</th><th>Period</th><th>Period score</th><th>Staff feedback</th></tr></thead>
           <tbody>${drillContractRows}</tbody>
         </table>
       </div>
@@ -1957,7 +1957,7 @@ function viewSuppliers() {
     <p class="section-title" style="margin-top:1.75rem;">Recent exceptions &amp; KPI linkage</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Supplier</th><th>Contract ref</th><th>Pulse score</th><th>Linked KPI</th></tr></thead>
+        <thead><tr><th>Date</th><th>Supplier</th><th>Contract ref</th><th>Feedback score</th><th>Linked KPI</th></tr></thead>
         <tbody>${excRows}</tbody>
       </table>
     </div>
@@ -2060,7 +2060,7 @@ function viewImportContracts() {
         <h2>How rows are mapped</h2>
         <ul class="check">
           <li><strong>JSON:</strong> root object with optional <code>suppliers</code> and one of <code>contracts</code>, <code>windows</code>, <code>feedbackWindows</code>, or <code>deliveries</code> (arrays).</li>
-          <li><strong>Open window from today:</strong> set <code>"openFromToday": true</code> (or CSV column <code>open_from_today</code> = true) — end date defaults to today + <strong>${FEEDBACK_WINDOW_DAYS}</strong> days.</li>
+          <li><strong>Open assessment from today:</strong> set <code>"openFromToday": true</code> (or CSV column <code>open_from_today</code> = true) — end date defaults to start plus the default span in code (<code>FEEDBACK_WINDOW_DAYS</code>).</li>
           <li><strong>Closed history:</strong> <code>status: "closed"</code> + dates + optional <code>finalScore</code> (1–5 scale). App maps that to a weighted total on a <strong>0–100</strong> scale (pillar weights in <code>kpi-framework.js</code>).</li>
           <li><strong>CSV headers</strong> (any similar spelling): supplier_name, supplier_id, category, contract_ref, contract_title, status, start_date, end_date, final_score, open_from_today.</li>
         </ul>
@@ -2222,15 +2222,15 @@ function renderMain() {
         status: "open",
       });
       persist();
-      toast(`${FEEDBACK_WINDOW_DAYS}-day feedback window opened.`);
+      toast("Assessment period opened.");
       el("nw-contract").value = "";
       refresh();
     });
     el("btn-process-due")?.addEventListener("click", () => {
       if (closeExpiredWindows(state)) {
         persist();
-        toast("Due windows closed; scores finalised.");
-      } else toast("No open windows past end date.");
+        toast("Due assessment periods closed; scores finalised.");
+      } else toast("No open periods past end date.");
       refresh();
     });
     el("btn-full-demo")?.addEventListener("click", () => {
@@ -2271,7 +2271,7 @@ function renderMain() {
       win.finalScoreMax = agg.max;
       win.finalScore = agg.max ? Math.min(5, Math.max(1, Math.round((agg.total / agg.max) * 5 * 10) / 10)) : 5;
       persist();
-      toast(`Sample closed window added (${agg.total}/${agg.max} weighted score).`);
+      toast(`Sample closed assessment added (${agg.total}/${agg.max} weighted score).`);
       refresh();
     });
   }
@@ -2422,7 +2422,7 @@ function renderMain() {
       e.preventDefault();
       const windowId = el("p-window").value;
       if (!windowId) {
-        toast("Select a feedback window.");
+        toast("Select an assessment window.");
         return;
       }
       const role = roleVal.value;
@@ -2472,8 +2472,8 @@ function renderMain() {
       const scoreTxt = Math.abs(score - Math.round(score)) < 1e-9 ? String(Math.round(score)) : score.toFixed(2);
       toast(
         reported
-          ? `Pulse saved — tagged KPI ~${scoreTxt}/5; weighted pulse score ${pk}/${maxS}.`
-          : `Pulse submitted — no issue; weighted score ${pk}/${maxS}.`
+          ? `Feedback saved — tagged KPI ~${scoreTxt}/5; weighted score ${pk}/${maxS}.`
+          : `Feedback submitted — no issue; weighted score ${pk}/${maxS}.`
       );
       refresh();
     });

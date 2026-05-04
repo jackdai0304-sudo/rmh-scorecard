@@ -4,6 +4,10 @@
   --rmh-navy: #002b5c;
   --rmh-navy-hover: #003d7a;
   --rmh-navy-muted: rgba(0, 43, 92, 0.08);
+  --srm-contract-icon: #1d4ed8;
+  --srm-contract-icon-soft: #3b82f6;
+  --srm-supplier-icon: #0f766e;
+  --srm-supplier-icon-soft: #14b8a6;
   --bg: #f8f9fa;
   --surface: #ffffff;
   --surface2: #f1f3f5;
@@ -470,6 +474,44 @@ textarea {
   border-color: var(--rmh-navy);
   color: var(--rmh-navy);
   background: var(--rmh-navy-muted);
+}
+
+/* SRM scorecard view — coloured icons (contract = blue, supplier = teal) */
+.role-toggle--srm button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.role-toggle--srm .role-toggle__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.role-toggle--srm .role-toggle__icon--contract {
+  color: var(--srm-contract-icon-soft);
+}
+
+.role-toggle--srm .role-toggle__icon--supplier {
+  color: var(--srm-supplier-icon-soft);
+}
+
+.role-toggle--srm button[data-view="contract"].is-on .role-toggle__icon--contract {
+  color: var(--srm-contract-icon);
+}
+
+.role-toggle--srm button[data-view="supplier"].is-on .role-toggle__icon--supplier {
+  color: var(--srm-supplier-icon);
+}
+
+.role-toggle--srm button:not(.is-on):hover .role-toggle__icon--contract {
+  color: var(--srm-contract-icon);
+}
+
+.role-toggle--srm button:not(.is-on):hover .role-toggle__icon--supplier {
+  color: var(--srm-supplier-icon);
 }
 
 .slider-row {
