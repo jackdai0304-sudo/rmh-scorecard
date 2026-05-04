@@ -1111,7 +1111,6 @@ const navItems = [
   { id: "pulse", label: "Pulse check" },
   { id: "kpis", label: "Contract KPIs" },
   { id: "suppliers", label: "Suppliers & SRM" },
-  { id: "roi", label: "ROI & framework" },
 ];
 
 let state = loadState();
@@ -1327,6 +1326,7 @@ function persist() {
 function refresh() {
   migrateFinalScores(state);
   if (closeExpiredWindows(state)) persist();
+  if (!navItems.some((n) => n.id === route)) route = "dashboard";
   renderNav();
   renderMain();
 }
@@ -2108,40 +2108,6 @@ function detectAndRunImport(text, filename) {
   return runCSVContractImport(state, t);
 }
 
-function viewRoi() {
-  return `
-    <p class="section-title">ROI &amp; standardized KPI framework</p>
-    <div class="grid grid--2">
-      <div class="card">
-        <h2>Problem</h2>
-        <p>Manual scorecards per transaction are inconsistent and costly. Post-contract performance is often invisible until renewal.</p>
-        <ul class="check">
-          <li>No single supplier KPI framework across categories (see <strong>Contract KPIs</strong> for the target model)</li>
-          <li>High admin burden on clinical and procurement staff</li>
-          <li>Weak objective data for renewal and market testing</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h2>Proposed approach</h2>
-        <p>Automate the post-contract phase: ingest contract terms, trigger timed pulse checks after each delivery or service completion, aggregate deduction-based scores.</p>
-        <ul class="check">
-          <li>${FEEDBACK_WINDOW_DAYS}-day window reduces noise; default 5/5 unless staff report and tag a KPI</li>
-          <li>Role-segmented pulses improve signal quality</li>
-          <li>Exceptions become structured SRM metrics</li>
-        </ul>
-      </div>
-    </div>
-    <div class="card" style="margin-top:1rem;">
-      <h2>Illustrative ROI levers (configure for RMH)</h2>
-      <div class="grid grid--3" style="margin-top:0.75rem;">
-        <div><div class="stat" style="font-size:1.25rem;">−60–80%</div><div class="stat-label">Manual scorecard touches</div><p style="margin:0.5rem 0 0;font-size:0.8rem;">Assumes most deliveries receive no exception.</p></div>
-        <div><div class="stat" style="font-size:1.25rem;">Earlier</div><div class="stat-label">Risk / quality signals</div><p style="margin:0.5rem 0 0;font-size:0.8rem;">Issues surface within the ${FEEDBACK_WINDOW_DAYS}-day window, not only at renewal.</p></div>
-        <div><div class="stat" style="font-size:1.25rem;">One view</div><div class="stat-label">Renewal &amp; tender</div><p style="margin:0.5rem 0 0;font-size:0.8rem;">Comparable scores across suppliers and categories.</p></div>
-      </div>
-    </div>
-  `;
-}
-
 function renderMain() {
   destroyDashboardCharts();
   const main = el("main");
@@ -2152,7 +2118,6 @@ function renderMain() {
     pulse: viewPulse,
     kpis: viewContractKpis,
     suppliers: viewSuppliers,
-    roi: viewRoi,
   };
   main.innerHTML = views[route]();
 
